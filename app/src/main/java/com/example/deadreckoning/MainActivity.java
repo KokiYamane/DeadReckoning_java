@@ -144,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 time += timeSpan;
 
                 String text = new String();
-                text += String.format("%.1f",time);
+                text += String.format("%.2f",time);
                 text += String.format(",%.3f",m_sensor_accel_val_x);
                 text += String.format(",%.3f",m_sensor_accel_val_y);
                 text += String.format(",%.3f",m_sensor_accel_val_z);
