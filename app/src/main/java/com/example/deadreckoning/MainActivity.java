@@ -35,10 +35,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     final double timeSpan = 0.02;      // 時間差分[s]
     double time = 0;
 
-    double[] speed = {0,0,0};   //　加速度から算出した速度
-    double[] diff = {0,0,0};    // 速度から算出した変位
+    double[] speed = {0,0,0};
+    double[] diff = {0,0,0};
     double[] oldacc = {0,0,0};
     double[] oldspeed = {0,0,0};
+
+    double[] rotdiff = {0,0,0};
+    double[] oldrotacc = {0,0,0};
+    double[] oldrotspeed = {0,0,0};
 
     String fileName = "pos.txt";
 
@@ -49,7 +53,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         deleteFile(fileName);
-        sampleFileOutput("time,acc_x,acc_y,acc_z,vel_x,vel_y,vel_z,pos_x,pos_y,pos_z\n", fileName);
+        sampleFileOutput("time,acc_x,acc_y,acc_z,vel_x,vel_y,vel_z,pos_x,pos_y,pos_z," +
+                "rot_x,rot_y,rot_z,rotvel_x,rotvel_y,rotvel_z,rotpos_x,rotpos_y,rotpos_z\n", fileName);
 
         m_sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 
@@ -80,8 +85,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Event Listener登録
         Sensor accel = m_sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         m_sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_GAME);
-        Sensor gyro = m_sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        m_sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor rot = m_sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        m_sensorManager.registerListener(this, rot, SensorManager.SENSOR_DELAY_GAME);
+        Sensor gyro = m_sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        m_sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override protected void onPause() {
@@ -97,15 +104,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             m_sensor_accel_val_y = event.values[1];
             m_sensor_accel_val_z = event.values[2];
 
-            if(time < 4) return;
+            if(time < 2) return;
             for(int i = 0; i < 3; i++) {
-//                event.values[i] = (Math.abs(event.values[i]) < 0.1) ? 0 : event.values[i];
-
                 // ローパスフィルター(現在の値 = 係数 * ひとつ前の値 ＋ (1 - 係数) * センサの値)
                 lowpassValue[i] = lowpassValue[i] * filterCoefficient + event.values[i] * (1 - filterCoefficient);
-
-//                speed[i] += lowpassValue[i] * timeSpan;
-//                diff[i] += speed[i] * timeSpan;
 
                 speed[i] += (oldacc[i] + lowpassValue[i])/2.0 * timeSpan;
                 diff[i] += (oldspeed[i] + speed[i])/2.0 * timeSpan;
@@ -114,10 +116,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 oldspeed[i] = speed[i];
             }
         }
-        else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
+        else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
             m_sensor_rot_val_x = event.values[0];
             m_sensor_rot_val_y = event.values[1];
             m_sensor_rot_val_z = event.values[2];
+
+            if(time < 2) return;
+            for(int i = 0; i < 3; i++) {
+                // ローパスフィルター(現在の値 = 係数 * ひとつ前の値 ＋ (1 - 係数) * センサの値)
+                lowpassValue[i] = lowpassValue[i] * filterCoefficient + event.values[i] * (1 - filterCoefficient);
+                rotdiff[i] += (oldrotacc[i] + lowpassValue[i])/2.0 * timeSpan;
+                oldrotspeed[i] = lowpassValue[i];
+            }
         }
     }
 
@@ -125,40 +135,46 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void StartCyclicHandler(){
         m_runnable = new Runnable() {
             @Override public void run() {
-                m_accel_val_x_TextView.setText(String.format("%.3f", m_sensor_accel_val_x));
-                m_accel_val_y_TextView.setText(String.format("%.3f", m_sensor_accel_val_y));
-                m_accel_val_z_TextView.setText(String.format("%.3f", m_sensor_accel_val_z));
+            m_accel_val_x_TextView.setText(String.format("%.3f", m_sensor_accel_val_x));
+            m_accel_val_y_TextView.setText(String.format("%.3f", m_sensor_accel_val_y));
+            m_accel_val_z_TextView.setText(String.format("%.3f", m_sensor_accel_val_z));
 
-                m_rot_val_x_TextView.setText(String.format("%.3f", m_sensor_rot_val_x));
-                m_rot_val_y_TextView.setText(String.format("%.3f", m_sensor_rot_val_y));
-                m_rot_val_z_TextView.setText(String.format("%.3f", m_sensor_rot_val_z));
+            m_rot_val_x_TextView.setText(String.format("%.3f", m_sensor_rot_val_x));
+            m_rot_val_y_TextView.setText(String.format("%.3f", m_sensor_rot_val_y));
+            m_rot_val_z_TextView.setText(String.format("%.3f", m_sensor_rot_val_z));
 
-                m_vel_val_x_TextView.setText(String.format("%.3f", speed[0]));
-                m_vel_val_y_TextView.setText(String.format("%.3f", speed[1]));
-                m_vel_val_z_TextView.setText(String.format("%.3f", speed[2]));
+            m_vel_val_x_TextView.setText(String.format("%.3f", speed[0]));
+            m_vel_val_y_TextView.setText(String.format("%.3f", speed[1]));
+            m_vel_val_z_TextView.setText(String.format("%.3f", speed[2]));
 
-                m_pos_val_x_TextView.setText(String.format("%.3f", diff[0]));
-                m_pos_val_y_TextView.setText(String.format("%.3f", diff[1]));
-                m_pos_val_z_TextView.setText(String.format("%.3f", diff[2]));
+            m_pos_val_x_TextView.setText(String.format("%.3f", diff[0]));
+            m_pos_val_y_TextView.setText(String.format("%.3f", diff[1]));
+            m_pos_val_z_TextView.setText(String.format("%.3f", diff[2]));
 
-                time += timeSpan;
+            time += timeSpan;
 
-                String text = new String();
-                text += String.format("%.2f",time);
-                text += String.format(",%.3f",m_sensor_accel_val_x);
-                text += String.format(",%.3f",m_sensor_accel_val_y);
-                text += String.format(",%.3f",m_sensor_accel_val_z);
-                text += String.format(",%.3f",speed[0]);
-                text += String.format(",%.3f",speed[1]);
-                text += String.format(",%.3f",speed[2]);
-                text += String.format(",%.3f",diff[0]);
-                text += String.format(",%.3f",diff[1]);
-                text += String.format(",%.3f",diff[2]);
-                text += String.format("\n");
+            String text = new String();
+            text += String.format("%.1f",time);
+            text += String.format(",%.3f",m_sensor_accel_val_x);
+            text += String.format(",%.3f",m_sensor_accel_val_y);
+            text += String.format(",%.3f",m_sensor_accel_val_z);
+            text += String.format(",%.3f",speed[0]);
+            text += String.format(",%.3f",speed[1]);
+            text += String.format(",%.3f",speed[2]);
+            text += String.format(",%.3f",diff[0]);
+            text += String.format(",%.3f",diff[1]);
+            text += String.format(",%.3f",diff[2]);
+            text += String.format(",%.3f",m_sensor_rot_val_x);
+            text += String.format(",%.3f",m_sensor_rot_val_y);
+            text += String.format(",%.3f",m_sensor_rot_val_z);
+            text += String.format(",%.3f",rotdiff[0]);
+            text += String.format(",%.3f",rotdiff[1]);
+            text += String.format(",%.3f",rotdiff[2]);
+            text += String.format("\n");
 
-                sampleFileOutput(text, fileName);
+            sampleFileOutput(text, fileName);
 
-                m_handler.postDelayed(this, 20);    // 200msスリープ
+            m_handler.postDelayed(this, 20);    // 200msスリープ
             }
         };
         m_handler.post(m_runnable);     // スレッド起動
