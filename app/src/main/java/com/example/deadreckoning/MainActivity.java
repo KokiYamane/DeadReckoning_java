@@ -16,172 +16,221 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private SensorManager m_sensorManager;
+    private SensorManager sensorManager;
 
-    private TextView m_accel_val_x_TextView, m_accel_val_y_TextView, m_accel_val_z_TextView;
-    private TextView m_rot_val_x_TextView, m_rot_val_y_TextView, m_rot_val_z_TextView;
-    private TextView m_vel_val_x_TextView, m_vel_val_y_TextView, m_vel_val_z_TextView;
-    private TextView m_pos_val_x_TextView, m_pos_val_y_TextView, m_pos_val_z_TextView;
+    // 画面表示
+    private TextView acc_x_text, acc_y_text, acc_z_text;
+    private TextView vel_x_text, vel_y_text, vel_z_text;
+    private TextView pos_x_text, pos_y_text, pos_z_text;
+    private TextView rot_x_text, rot_y_text, rot_z_text;
 
-    private float m_sensor_accel_val_x, m_sensor_accel_val_y, m_sensor_accel_val_z;
-    private float m_sensor_rot_val_x, m_sensor_rot_val_y, m_sensor_rot_val_z;
-
-    private Runnable m_runnable;
-    private final Handler m_handler = new Handler();
-
-    double filterCoefficient = 0.9;
-    double[] lowpassValue = {0,0,0};
-
-    final double timeSpan = 0.02;      // 時間差分[s]
+    // 周期ハンドラ
+    private Runnable runnable;
+    private final Handler handler = new Handler();
+    
+    // 時間
+    final double timeSpan = 0.02;
     double time = 0;
+    double start;
 
-    double[] speed = {0,0,0};
-    double[] diff = {0,0,0};
-    double[] oldacc = {0,0,0};
-    double[] oldspeed = {0,0,0};
+    // 加速度センサー
+    float[] acc_device = new float[3];
+    float[] acc_world = new float[3];
+    float[] speed = new float[3];
+    float[] diff = new float[3];
+    float[] oldacc = new float[3];
+    float[] oldspeed = new float[3];
 
-    double[] rotdiff = {0,0,0};
-    double[] oldrotacc = {0,0,0};
-    double[] oldrotspeed = {0,0,0};
+    // ジャイロセンサー
+    float[] angularVelocity = new float[3];
+    float[] angulardiff = new float[3];
+    float[] oldAngularVelocity = new float[3];
 
+    // 地磁気・重力センサー
+    float[] geomagnetic = new float[3];
+    float[] gravity = new float[3];
+    float[] rotationMatrix = new float[9];
+    float[] attitude = new float[3];
+
+    // 出力ファイル名
     String fileName = "pos.txt";
 
-    private static final int MATRIX_SIZE = 16;
+    protected final static float RAD2DEG = 180/(float)Math.PI;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         deleteFile(fileName);
-        sampleFileOutput("time,acc_x,acc_y,acc_z,vel_x,vel_y,vel_z,pos_x,pos_y,pos_z," +
-                "rot_x,rot_y,rot_z,rotvel_x,rotvel_y,rotvel_z,rotpos_x,rotpos_y,rotpos_z\n", fileName);
+        sampleFileOutput("time," +
+                "acc_x,acc_y,acc_z," +
+                "vel_x,vel_y,vel_z," +
+                "pos_x,pos_y,pos_z," +
+                "rot_x,rot_y,rot_z," +
+                "rotvel_x,rotvel_y,rotvel_z," +
+                "rotpos_x,rotpos_y,rotpos_z\n", fileName);
 
-        m_sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 
-        m_accel_val_x_TextView = findViewById(R.id.accel_val_x);
-        m_accel_val_y_TextView = findViewById(R.id.accel_val_y);
-        m_accel_val_z_TextView = findViewById(R.id.accel_val_z);
-        m_sensor_accel_val_x = m_sensor_accel_val_y = m_sensor_accel_val_z = 0;
+        acc_x_text = findViewById(R.id.accel_val_x);
+        acc_y_text = findViewById(R.id.accel_val_y);
+        acc_z_text = findViewById(R.id.accel_val_z);
 
-        m_rot_val_x_TextView = findViewById(R.id.rot_val_x);
-        m_rot_val_y_TextView = findViewById(R.id.rot_val_y);
-        m_rot_val_z_TextView = findViewById(R.id.rot_val_z);
-        m_sensor_rot_val_x = m_sensor_rot_val_y = m_sensor_rot_val_z = 0;
+        rot_x_text = findViewById(R.id.rot_val_x);
+        rot_y_text = findViewById(R.id.rot_val_y);
+        rot_z_text = findViewById(R.id.rot_val_z);
 
-        m_vel_val_x_TextView = findViewById(R.id.vel_val_x);
-        m_vel_val_y_TextView = findViewById(R.id.vel_val_y);
-        m_vel_val_z_TextView = findViewById(R.id.vel_val_z);
+        vel_x_text = findViewById(R.id.vel_val_x);
+        vel_y_text = findViewById(R.id.vel_val_y);
+        vel_z_text = findViewById(R.id.vel_val_z);
 
-        m_pos_val_x_TextView = findViewById(R.id.pos_val_x);
-        m_pos_val_y_TextView = findViewById(R.id.pos_val_y);
-        m_pos_val_z_TextView = findViewById(R.id.pos_val_z);
+        pos_x_text = findViewById(R.id.pos_val_x);
+        pos_y_text = findViewById(R.id.pos_val_y);
+        pos_z_text = findViewById(R.id.pos_val_z);
 
         if(isExternalStorageWritable() == true)StartCyclicHandler();       // 周期ハンドラ開始
+        start = System.currentTimeMillis()/1000.0;
     }
 
     @Override protected void onResume() {
         super.onResume();
 
         // Event Listener登録
-        Sensor accel = m_sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        m_sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_GAME);
-        Sensor rot = m_sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        m_sensorManager.registerListener(this, rot, SensorManager.SENSOR_DELAY_GAME);
-        Sensor gyro = m_sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        m_sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+                SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override protected void onPause() {
         super.onPause();
-        m_sensorManager.unregisterListener(this);   // Event Listener登録解除
-        StoptCyclicHandler();                       // 周期ハンドラ停止
+        sensorManager.unregisterListener(this);   // Event Listener登録解除
+        StoptCyclicHandler();                     // 周期ハンドラ停止
+    }
+
+    public float LPF(float value, float oldvalue, double Coefficient) {
+        return oldvalue * (float)Coefficient + value * (1 - (float)Coefficient);
     }
 
     // センサーの値更新
     @Override public void onSensorChanged(SensorEvent event) {
         if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-            m_sensor_accel_val_x = event.values[0];
-            m_sensor_accel_val_y = event.values[1];
-            m_sensor_accel_val_z = event.values[2];
+            acc_device = event.values.clone();
 
             if(time < 2) return;
             for(int i = 0; i < 3; i++) {
-                // ローパスフィルター(現在の値 = 係数 * ひとつ前の値 ＋ (1 - 係数) * センサの値)
-                lowpassValue[i] = lowpassValue[i] * filterCoefficient + event.values[i] * (1 - filterCoefficient);
+                float lowpassValue = LPF(acc_device[i],oldacc[i], 0.9);
+                
+                speed[i] += (oldacc[i] + lowpassValue)/2.0 * timeSpan;
+                diff[i]  += (oldspeed[i] + speed[i])/2.0 * timeSpan;
 
-                speed[i] += (oldacc[i] + lowpassValue[i])/2.0 * timeSpan;
-                diff[i] += (oldspeed[i] + speed[i])/2.0 * timeSpan;
-
-                oldacc[i] = lowpassValue[i];
+                oldacc[i]   = lowpassValue;
                 oldspeed[i] = speed[i];
             }
         }
         else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
-            m_sensor_rot_val_x = event.values[0];
-            m_sensor_rot_val_y = event.values[1];
-            m_sensor_rot_val_z = event.values[2];
+            angularVelocity = event.values.clone();
 
             if(time < 2) return;
             for(int i = 0; i < 3; i++) {
-                // ローパスフィルター(現在の値 = 係数 * ひとつ前の値 ＋ (1 - 係数) * センサの値)
-                lowpassValue[i] = lowpassValue[i] * filterCoefficient + event.values[i] * (1 - filterCoefficient);
-                rotdiff[i] += (oldrotacc[i] + lowpassValue[i])/2.0 * timeSpan;
-                oldrotspeed[i] = lowpassValue[i];
+                float lowpassValue = LPF(angularVelocity[i],oldAngularVelocity[i], 0.9);
+                angulardiff[i] += (oldAngularVelocity[i] + lowpassValue)/2.0 * timeSpan;
+                oldAngularVelocity[i] = lowpassValue;
             }
+        }
+
+        switch(event.sensor.getType()){
+            case Sensor.TYPE_LINEAR_ACCELERATION:
+                gravity = event.values.clone();
+                break;
+            case Sensor.TYPE_GYROSCOPE:
+                gravity = event.values.clone();
+                break;
+            case Sensor.TYPE_GRAVITY:
+                gravity = event.values.clone();
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                geomagnetic = event.values.clone();
+                break;
+        }
+
+        if(geomagnetic != null && gravity != null){
+            SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic);
+            SensorManager.getOrientation(rotationMatrix, attitude);
         }
     }
 
-    // 値表示
+    // 周期ハンドラ　50[Hz]
     protected void StartCyclicHandler(){
-        m_runnable = new Runnable() {
+        runnable = new Runnable() {
             @Override public void run() {
-            m_accel_val_x_TextView.setText(String.format("%.3f", m_sensor_accel_val_x));
-            m_accel_val_y_TextView.setText(String.format("%.3f", m_sensor_accel_val_y));
-            m_accel_val_z_TextView.setText(String.format("%.3f", m_sensor_accel_val_z));
+                time = System.currentTimeMillis()/1000.0 - start;
 
-            m_rot_val_x_TextView.setText(String.format("%.3f", m_sensor_rot_val_x));
-            m_rot_val_y_TextView.setText(String.format("%.3f", m_sensor_rot_val_y));
-            m_rot_val_z_TextView.setText(String.format("%.3f", m_sensor_rot_val_z));
+                // 画面出力
+                acc_x_text.setText(String.format("%.3f", acc_device[0]));
+                acc_y_text.setText(String.format("%.3f", acc_device[1]));
+                acc_z_text.setText(String.format("%.3f", acc_device[2]));
 
-            m_vel_val_x_TextView.setText(String.format("%.3f", speed[0]));
-            m_vel_val_y_TextView.setText(String.format("%.3f", speed[1]));
-            m_vel_val_z_TextView.setText(String.format("%.3f", speed[2]));
+//                rot_x_text.setText(String.format("%.3f", angulardiff[0] * RAD2DEG));
+//                rot_y_text.setText(String.format("%.3f", angulardiff[1] * RAD2DEG));
+//                rot_z_text.setText(String.format("%.3f", angulardiff[2] * RAD2DEG));
 
-            m_pos_val_x_TextView.setText(String.format("%.3f", diff[0]));
-            m_pos_val_y_TextView.setText(String.format("%.3f", diff[1]));
-            m_pos_val_z_TextView.setText(String.format("%.3f", diff[2]));
+                rot_x_text.setText(Integer.toString( (int)(attitude[0] * RAD2DEG) ));
+                rot_y_text.setText(Integer.toString( (int)(attitude[1] * RAD2DEG) ));
+                rot_z_text.setText(Integer.toString( (int)(attitude[2] * RAD2DEG) ));
 
-            time += timeSpan;
+                vel_x_text.setText(String.format("%.3f", speed[0]));
+                vel_y_text.setText(String.format("%.3f", speed[1]));
+                vel_z_text.setText(String.format("%.3f", speed[2]));
 
-            String text = new String();
-            text += String.format("%.1f",time);
-            text += String.format(",%.3f",m_sensor_accel_val_x);
-            text += String.format(",%.3f",m_sensor_accel_val_y);
-            text += String.format(",%.3f",m_sensor_accel_val_z);
-            text += String.format(",%.3f",speed[0]);
-            text += String.format(",%.3f",speed[1]);
-            text += String.format(",%.3f",speed[2]);
-            text += String.format(",%.3f",diff[0]);
-            text += String.format(",%.3f",diff[1]);
-            text += String.format(",%.3f",diff[2]);
-            text += String.format(",%.3f",m_sensor_rot_val_x);
-            text += String.format(",%.3f",m_sensor_rot_val_y);
-            text += String.format(",%.3f",m_sensor_rot_val_z);
-            text += String.format(",%.3f",rotdiff[0]);
-            text += String.format(",%.3f",rotdiff[1]);
-            text += String.format(",%.3f",rotdiff[2]);
-            text += String.format("\n");
+                pos_x_text.setText(String.format("%.3f", diff[0]));
+                pos_y_text.setText(String.format("%.3f", diff[1]));
+                pos_z_text.setText(String.format("%.3f", diff[2]));
 
-            sampleFileOutput(text, fileName);
+                // ファイル出力
+                String text = new String();
+                text += String.format("%.3f",time);
+                text += String.format(",%.3f", acc_world[0]);
+                text += String.format(",%.3f", acc_world[1]);
+                text += String.format(",%.3f", acc_world[2]);
+                text += String.format(",%.3f", speed[0]);
+                text += String.format(",%.3f", speed[1]);
+                text += String.format(",%.3f", speed[2]);
+                text += String.format(",%.3f", diff[0]);
+                text += String.format(",%.3f", diff[1]);
+                text += String.format(",%.3f", diff[2]);
+                text += String.format(",%.3f", angularVelocity[0]);
+                text += String.format(",%.3f", angularVelocity[1]);
+                text += String.format(",%.3f", angularVelocity[2]);
+                text += String.format(",%.3f", angulardiff[0]);
+                text += String.format(",%.3f", angulardiff[1]);
+                text += String.format(",%.3f", angulardiff[2]);
+                text += String.format(",%.3f", attitude[0]);
+                text += String.format(",%.3f", attitude[1]);
+                text += String.format(",%.3f", attitude[2]);
+                text += String.format("\n");
+                sampleFileOutput(text, fileName);
 
-            m_handler.postDelayed(this, 20);    // 200msスリープ
+                handler.postDelayed(this, 20);    // 20msスリープ
             }
         };
-        m_handler.post(m_runnable);     // スレッド起動
+        handler.post(runnable);     // スレッド起動
     }
 
     protected void StoptCyclicHandler() {
-        m_handler.removeCallbacks(m_runnable);
+        handler.removeCallbacks(runnable);
     }
 
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {
