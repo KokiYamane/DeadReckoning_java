@@ -73,7 +73,7 @@
 
             <TextView
                 android:id="@+id/vel_val_y"
-                android:layout_width="160dp"
+                android:layout_width="100dp"
                 android:layout_height="30dp"
                 android:text="TextView" />
         </TableRow>
@@ -106,7 +106,7 @@
 
             <TextView
                 android:id="@+id/vel_val_z"
-                android:layout_width="160dp"
+                android:layout_width="100dp"
                 android:layout_height="30dp"
                 android:text="TextView" />
         </TableRow>
@@ -114,6 +114,18 @@
         <TableRow
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/pos_x"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="pos_x" />
+
+            <TextView
+                android:id="@+id/pos_val_x"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="TextView" />
 
             <TextView
                 android:id="@+id/rot_x"
@@ -131,23 +143,23 @@
                 app:layout_constraintTop_toBottomOf="@+id/accel_val_z"
                 tools:layout_editor_absoluteX="167dp" />
 
-            <TextView
-                android:id="@+id/pos_x"
-                android:layout_width="100dp"
-                android:layout_height="30dp"
-                android:text="pos_x" />
-
-            <TextView
-                android:id="@+id/pos_val_x"
-                android:layout_width="160dp"
-                android:layout_height="30dp"
-                android:text="TextView" />
-
         </TableRow>
 
         <TableRow
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/pos_y"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="pos_y" />
+
+            <TextView
+                android:id="@+id/pos_val_y"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="TextView" />
 
             <TextView
                 android:id="@+id/rot_y"
@@ -165,23 +177,23 @@
                 app:layout_constraintTop_toBottomOf="@+id/rot_val_x"
                 tools:layout_editor_absoluteX="72dp" />
 
-            <TextView
-                android:id="@+id/pos_y"
-                android:layout_width="100dp"
-                android:layout_height="30dp"
-                android:text="pos_y" />
-
-            <TextView
-                android:id="@+id/pos_val_y"
-                android:layout_width="160dp"
-                android:layout_height="30dp"
-                android:text="TextView" />
-
         </TableRow>
 
         <TableRow
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/pos_z"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="pos_z" />
+
+            <TextView
+                android:id="@+id/pos_val_z"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:text="TextView" />
 
             <TextView
                 android:id="@+id/rot_z"
@@ -198,18 +210,6 @@
                 android:text="TextView"
                 app:layout_constraintTop_toBottomOf="@+id/rot_val_y"
                 tools:layout_editor_absoluteX="181dp" />
-
-            <TextView
-                android:id="@+id/pos_z"
-                android:layout_width="100dp"
-                android:layout_height="30dp"
-                android:text="pos_z" />
-
-            <TextView
-                android:id="@+id/pos_val_z"
-                android:layout_width="160dp"
-                android:layout_height="30dp"
-                android:text="TextView" />
 
         </TableRow>
 
