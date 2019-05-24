@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 for i in range(3):
-    time,acc_x,acc_y,acc_z,vel_x,vel_y,vel_z,pos_x,pos_y,pos_z = np.loadtxt(str(i) + ".txt", delimiter = ',', skiprows = 1, unpack = True)
+    time,acc_x,acc_y,acc_z,vel_x,vel_y,vel_z,pos_x,pos_y,pos_z = np.loadtxt(str(i) + ".txt", delimiter = ",", skiprows = 1, unpack = True)
     fig1 = plt.figure(figsize=(6, 8))
 
     graph = fig1.add_subplot(311)
@@ -14,7 +14,7 @@ for i in range(3):
     graph.yaxis.set_label_coords(-0.1, 0.5)
     plt.xlim(0,34)
     # plt.ylim(-0.13,0.13)
-    plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=12)
+    plt.legend(bbox_to_anchor=(1, 1), loc="upper right", borderaxespad=0, fontsize=12)
 
     graph = fig1.add_subplot(312)
     graph.plot(time,vel_x, color="red")

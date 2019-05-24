@@ -23,7 +23,7 @@ rad_mag_y = 17
 rad_mag_z = 18
 
 # データの読み込み
-data = np.loadtxt("turnTable.txt", delimiter = ',', skiprows = 1, unpack = True)
+data = np.loadtxt("turnTable.txt", delimiter = ",", skiprows = 1, unpack = True)
 
 fig1 = plt.figure(figsize=(6, 8))
 
@@ -36,7 +36,7 @@ graph.set_ylabel("angular velocity[deg/s]")
 graph.yaxis.set_label_coords(-0.1, 0.5)
 # plt.xlim(2,32)
 # plt.ylim(-0.13,0.13)
-plt.legend(bbox_to_anchor=(1, 1), loc='upper right', borderaxespad=0, fontsize=12)
+plt.legend(bbox_to_anchor=(1, 1), loc="upper right", borderaxespad=0, fontsize=12)
 
 graph = fig1.add_subplot(212)
 graph.plot(data[time],data[rad_gyro_x] * 180/np.pi, color="red")

@@ -22,24 +22,30 @@ rad_gyro_z = 15
 rad_mag_x = 16
 rad_mag_y = 17
 rad_mag_z = 18
+pos_step_x = 19
+pos_step_y = 20
 
 # データの読み込み
-data = np.loadtxt("pos.txt", delimiter = ',', skiprows = 1, unpack = True)
+data = np.loadtxt("pos2.txt", delimiter = ",", skiprows = 1, unpack = True)
 
 # 2Dグラフ
 fig1 = plt.figure(figsize=(6, 6))
 graph = fig1.add_subplot(111)
-graph.plot(data[pos_x],data[pos_y])
+graph.plot(data[pos_step_x],data[pos_step_y])
+# graph.plot(data[pos_x],data[pos_y])
 graph.set_xlabel("x [m]")
 graph.set_ylabel("y [m]")
+graph.set_aspect('equal')
+# plt.xlim(-20,35)
+# plt.ylim(-20,35)
 plt.savefig("route.png")
 
 # 3Dグラフ
-fig2 = plt.figure(figsize=(6, 6))
-graph = fig2.add_subplot(111, projection='3d')
-graph.scatter3D(data[pos_x],data[pos_y],data[pos_z])
-graph.set_xlabel("x [m]")
-graph.set_ylabel("y [m]")
-plt.savefig("route3D.png")
+# fig2 = plt.figure(figsize=(6, 6))
+# graph = fig2.add_subplot(111, projection="3d")
+# graph.scatter3D(data[pos_x],data[pos_y],data[pos_z])
+# graph.set_xlabel("x [m]")
+# graph.set_ylabel("y [m]")
+# plt.savefig("route3D.png")
 
-plt.show()
+# plt.show()
