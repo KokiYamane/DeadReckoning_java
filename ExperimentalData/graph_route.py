@@ -32,7 +32,7 @@ class item(IntEnum):
     pos_step_y = auto()
 
 # データの読み込み
-filename = "pos3"
+filename = "roundabout3"
 data = np.loadtxt("data/" + filename + ".txt", delimiter = ",", skiprows = 1, unpack = True) 
 
 # 2Dグラフ
@@ -41,10 +41,10 @@ graph = fig1.add_subplot(111)
 graph.plot(data[item.pos_step_gyro_x],data[item.pos_step_gyro_y], color="red", label="gyro")
 graph.plot(data[item.pos_step_mag_x],data[item.pos_step_mag_y], color="blue", label="mag")
 # graph.plot(data[item.pos_step_x],data[item.pos_step_y], color="gray")
-# graph.plot(data[item.pos_x],data[item.pos_y])
+# graph.plot(data[item.pos_x],data[item.pos_y], color="blue", label="mag")
 graph.set_xlabel("x [m]")
 graph.set_ylabel("y [m]")
-graph.set_aspect('equal')
+graph.set_aspect("equal")
 # plt.xlim(-20,35)
 # plt.ylim(-20,35)
 plt.legend(bbox_to_anchor=(1, 0), loc="lower right", borderaxespad=0, fontsize=12)
@@ -58,4 +58,4 @@ plt.savefig("graph/route/" + filename + ".png")
 # graph.set_ylabel("y [m]")
 # plt.savefig("route3D.png")
 
-# plt.show()
+plt.show()

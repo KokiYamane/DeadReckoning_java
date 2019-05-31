@@ -243,7 +243,7 @@
                 tools:layout_editor_absoluteX="0dp" />
 
             <TextView
-                android:id="@+id/rot_val_x"
+                android:id="@+id/dig_mag_val_x"
                 android:layout_width="50pt"
                 android:layout_height="15pt"
                 android:text="TextView"
@@ -277,11 +277,11 @@
                 tools:layout_editor_absoluteY="120dp" />
 
             <TextView
-                android:id="@+id/rot_val_y"
+                android:id="@+id/dig_mag_val_y"
                 android:layout_width="50pt"
                 android:layout_height="15pt"
                 android:text="TextView"
-                app:layout_constraintTop_toBottomOf="@+id/rot_val_x"
+                app:layout_constraintTop_toBottomOf="@+id/dig_mag_val_x"
                 tools:layout_editor_absoluteX="72dp" />
         </TableRow>
 
@@ -310,11 +310,11 @@
                 tools:layout_editor_absoluteY="150dp" />
 
             <TextView
-                android:id="@+id/rot_val_z"
+                android:id="@+id/dig_mag_val_z"
                 android:layout_width="50pt"
                 android:layout_height="15pt"
                 android:text="TextView"
-                app:layout_constraintTop_toBottomOf="@+id/rot_val_y"
+                app:layout_constraintTop_toBottomOf="@+id/dig_mag_val_y"
                 tools:layout_editor_absoluteX="181dp" />
 
         </TableRow>

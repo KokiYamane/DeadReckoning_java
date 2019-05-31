@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView acc_x_text, acc_y_text, acc_z_text;
     private TextView vel_x_text, vel_y_text, vel_z_text;
     private TextView pos_x_text, pos_y_text, pos_z_text;
-    private TextView rot_x_text, rot_y_text, rot_z_text;
+    private TextView dig_mag_x_text, dig_mag_y_text, dig_mag_z_text;
     private TextView dig_gyro_x_text, dig_gyro_y_text, dig_gyro_z_text;
     private TextView step_text, pos_step_x_text, pos_step_y_text;
 
@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] rad = new float[3];
 
     // 出力ファイル名
-    String fileName = "pos.txt";
+    String fileName = "data.txt";
 
     protected final static float RAD2DEG = 180/(float)Math.PI;
     protected final static int X = 0;
@@ -104,13 +104,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         pos_y_text = findViewById(R.id.pos_val_y);
         pos_z_text = findViewById(R.id.pos_val_z);
 
-        rot_x_text = findViewById(R.id.rot_val_x);
-        rot_y_text = findViewById(R.id.rot_val_y);
-        rot_z_text = findViewById(R.id.rot_val_z);
-
         dig_gyro_x_text = findViewById(R.id.dig_gyro_val_x);
         dig_gyro_y_text = findViewById(R.id.dig_gyro_val_y);
         dig_gyro_z_text = findViewById(R.id.dig_gyro_val_z);
+
+        dig_mag_x_text = findViewById(R.id.dig_mag_val_x);
+        dig_mag_y_text = findViewById(R.id.dig_mag_val_y);
+        dig_mag_z_text = findViewById(R.id.dig_mag_val_z);
 
         step_text       = findViewById(R.id.step_val);
         pos_step_x_text = findViewById(R.id.pos_step_val_x);
@@ -167,41 +167,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);   // Event Listener登録解除
+        sensorManager.unregisterListener(this);   // イベントリスナー登録解除
         StoptCyclicHandler();                     // 周期ハンドラ停止
     }
 
-    // 3*3行列の積 A*B
-    public float[] multiplyMatrix(float[] A, float[] B) {
-        float[] answer = new float[9];
-        for(int i = 0; i < 3; i++) {
-            for(int j = 0; j < 3; j++) {
-                for(int k = 0; k < 3; k++) {
-                    answer[3 * i + j] += A[3 * i + k] * B[3 * k + j];
-                }
-            }
-        }
-        return answer;
-    }
-
-    public float[] getRotationMatrixByGyro(float[] rad) {
-        float[] rotationMatrix;
-        float[] rotationMatrix_x = {
-                1,                        0,                       0,
-                0,  (float)Math.cos(rad[X]), (float)Math.sin(rad[X]),
-                0, -(float)Math.sin(rad[X]), (float)Math.cos(rad[X])};
-        float[] rotationMatrix_y = {
-                (float)Math.cos(rad[Y]), 0, -(float)Math.sin(rad[Y]),
-                                      0, 1,                       0,
-                (float)Math.sin(rad[Y]), 0,  (float)Math.cos(rad[Y])};
-        float[] rotationMatrix_z = {
-                 (float)Math.cos(rad[Z]), (float)Math.sin(rad[Z]), 0,
-                -(float)Math.sin(rad[Z]), (float)Math.cos(rad[Z]), 0,
-                                       0,                      0, 1};
-        rotationMatrix = multiplyMatrix(rotationMatrix_z, rotationMatrix_y);
-        rotationMatrix = multiplyMatrix(rotationMatrix  , rotationMatrix_x);
-        return rotationMatrix;
-    }
+//    // 3*3行列の積 A*B
+//    public float[] multiplyMatrix(float[] A, float[] B) {
+//        float[] answer = new float[9];
+//        for(int i = 0; i < 3; i++) {
+//            for(int j = 0; j < 3; j++) {
+//                for(int k = 0; k < 3; k++) {
+//                    answer[3 * i + j] += A[3 * i + k] * B[3 * k + j];
+//                }
+//            }
+//        }
+//        return answer;
+//    }
+//
+//    public float[] getRotationMatrixByGyro(float[] rad) {
+//        float[] rotationMatrix;
+//        float[] rotationMatrix_x = {
+//                1,                        0,                       0,
+//                0,  (float)Math.cos(rad[X]), (float)Math.sin(rad[X]),
+//                0, -(float)Math.sin(rad[X]), (float)Math.cos(rad[X])};
+//        float[] rotationMatrix_y = {
+//                (float)Math.cos(rad[Y]), 0, -(float)Math.sin(rad[Y]),
+//                                      0, 1,                       0,
+//                (float)Math.sin(rad[Y]), 0,  (float)Math.cos(rad[Y])};
+//        float[] rotationMatrix_z = {
+//                 (float)Math.cos(rad[Z]), (float)Math.sin(rad[Z]), 0,
+//                -(float)Math.sin(rad[Z]), (float)Math.cos(rad[Z]), 0,
+//                                       0,                      0, 1};
+//        rotationMatrix = multiplyMatrix(rotationMatrix_z, rotationMatrix_y);
+//        rotationMatrix = multiplyMatrix(rotationMatrix  , rotationMatrix_x);
+//        return rotationMatrix;
+//    }
 
     // ローパスフィルタ
     public float LPF(float value, float oldvalue, double Coefficient) {
@@ -222,19 +222,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 accTimeSpan = accNowTime - accOldTime;
                 accOldTime = accNowTime;
 
-                // 座標変換
-                float[] rotationMatrixByGyro = getRotationMatrixByGyro(rad_gyro);
-                for(int i = 0; i < 3; i++) {
-                    acc_world[i] = 0;
-                    for(int j = 0; j < 3; j++) {
-                        acc_world[i] += rotationMatrixByGyro[j+i*3] * acc_device[j];
-                    }
-                }
+//                // 座標変換
+//                float[] rotationMatrixByGyro = getRotationMatrixByGyro(rad_gyro);
+//                for(int i = 0; i < 3; i++) {
+//                    acc_world[i] = 0;
+//                    for(int j = 0; j < 3; j++) {
+//                        acc_world[i] += rotationMatrixByGyro[j+i*3] * acc_device[j];
+//                    }
+//                }
 
                 if(time < 2) return;
                 for(int i = 0; i < 3; i++) {
                     // ローパスフィルタ
-                    float lowpassValue = LPF(acc_world[i],oldacc[i], 0.9);
+                    float lowpassValue = LPF(acc_device[i],oldacc[i], 0.9);
 
                     // 台形積分
                     speed[i] += (oldacc[i] + lowpassValue)/2.0 * accTimeSpan;
@@ -262,13 +262,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     // 台形積分
                     rad_gyro[i] += (oldAngularVelocity[i] + lowpassValue)/2.0 * gyroTimeSpan;
-                    if(rad_gyro[i] >  Math.PI) rad_gyro[i] -= 2 * Math.PI;
-                    if(rad_gyro[i] < -Math.PI) rad_gyro[i] += 2 * Math.PI;
+                    if(rad_gyro[i] >  Math.PI) rad_gyro[i] -= 2*Math.PI;
+                    if(rad_gyro[i] < -Math.PI) rad_gyro[i] += 2*Math.PI;
 
                     // 台形積分
                     rad[i] += (oldAngularVelocity[i] + lowpassValue)/2.0 * gyroTimeSpan;
-                    if(rad[i] >  Math.PI) rad[i] -= 2 * Math.PI;
-                    if(rad[i] < -Math.PI) rad[i] += 2 * Math.PI;
+                    if(rad[i] >  Math.PI) rad[i] -= 2*Math.PI;
+                    if(rad[i] < -Math.PI) rad[i] += 2*Math.PI;
 
                     // 現在の値保存
                     oldAngularVelocity[i] = lowpassValue;
@@ -279,6 +279,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case Sensor.TYPE_GRAVITY:
                 gravity = event.values.clone();
                 break;
+
+//            case Sensor.TYPE_ACCELEROMETER:
+//                gravity = event.values.clone();
+//                break;
 
             // 地磁気センサー
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -322,7 +326,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
             // ジャイロ角度を地磁気角度で定期的に補正
-            if(time - lastInitTime < 120) {
+            if(time - lastInitTime > 120) {
                 rad[X] = rad_mag[X];
                 rad[Y] = rad_mag[Y];
                 rad[Z] = rad_mag[Z];
@@ -356,9 +360,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             dig_gyro_y_text.setText(Integer.toString( (int)(rad_gyro[Y] * RAD2DEG) ));
             dig_gyro_z_text.setText(Integer.toString( (int)(rad_gyro[Z] * RAD2DEG) ));
 
-            rot_x_text.setText(Integer.toString( (int)(rad_mag[X] * RAD2DEG) ));
-            rot_y_text.setText(Integer.toString( (int)(rad_mag[Y] * RAD2DEG) ));
-            rot_z_text.setText(Integer.toString( (int)(rad_mag[Z] * RAD2DEG) ));
+            dig_mag_x_text.setText(Integer.toString( (int)(rad_mag[X] * RAD2DEG) ));
+            dig_mag_y_text.setText(Integer.toString( (int)(rad_mag[Y] * RAD2DEG) ));
+            dig_mag_z_text.setText(Integer.toString( (int)(rad_mag[Z] * RAD2DEG) ));
 
             step_text.setText(String.format("%.3f", step));
             pos_step_x_text.setText(String.format("%.3f", pos_step[X]));
