@@ -31,7 +31,7 @@ class item(IntEnum):
     pos_step_y = auto()
 
 # データの読み込み
-filename = "turnTable2"
+filename = "turnTable7"
 data = np.loadtxt("data/" + filename + ".txt", delimiter = ",", skiprows = 2, unpack = True) 
 fig1 = plt.figure(figsize=(8, 8))
 
