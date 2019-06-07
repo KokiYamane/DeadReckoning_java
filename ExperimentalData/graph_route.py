@@ -32,7 +32,7 @@ class item(IntEnum):
     pos_step_y = auto()
 
 # データの読み込み
-filename = "roundabout3"
+filename = "walk5"
 data = np.loadtxt("data/" + filename + ".txt", delimiter = ",", skiprows = 1, unpack = True) 
 
 # 2Dグラフ

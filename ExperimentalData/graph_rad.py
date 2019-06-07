@@ -30,12 +30,11 @@ class item(IntEnum):
     pos_step_x = auto()
     pos_step_y = auto()
 
-
 start = 0
 width = 90
 
 # データの読み込み
-filename = "turnTable7"
+filename = "roundabout1"
 data = np.loadtxt("data/" + filename + ".txt", delimiter = ",", skiprows = 2, unpack = True) 
 fig1 = plt.figure(figsize=(8, 8))
 
@@ -59,18 +58,18 @@ plt.tick_params(labelbottom=False, bottom=False)
 graph.set_ylabel("angular velocity[deg/s]")
 graph.yaxis.set_label_coords(-0.1, 0.5)
 plt.legend(bbox_to_anchor=(1, 1), loc="upper right", borderaxespad=0, fontsize=12)
-plt.xlim(start, start+width)
+# plt.xlim(start, start+width)
 
 graph = fig1.add_subplot(212)
-graph.plot(data[item.time]/60, data[item.rad_gyro_z]*180/np.pi, color="red", label = "gyro")
-graph.plot(data[item.time]/60, data[item.rad_mag_z]*180/np.pi, color="blue", label = "mag")
-# graph.plot(data[item.time]/60, -(data[item.time]-8)*6.12%360-180, color="gray", label = "expected")
+graph.plot(data[item.time], data[item.rad_gyro_z]*180/np.pi, color="red", label = "gyro")
+graph.plot(data[item.time], data[item.rad_mag_z]*180/np.pi, color="blue", label = "mag")
+# graph.plot(data[item.time]/60, (data[item.time]-35)*6.12%360-180, color="gray", label = "expected")
 # plt.grid(color="gray")
 plt.legend(bbox_to_anchor=(1, 1), loc="upper right", borderaxespad=0, fontsize=12)
-plt.xlim(start, start+width)
+# plt.xlim(start, start+width)
 graph.set_ylabel("z [deg]")
 graph.yaxis.set_label_coords(-0.1, 0.5)
-graph.set_xlabel("time[min]")
+graph.set_xlabel("time[s]")
 
 plt.savefig("graph/rad/" + filename + ".png")
-# plt.show()
+plt.show()
