@@ -19,7 +19,7 @@ for i in range(3):
     graph = fig1.add_subplot(311)
     # graph.plot(time,acc_x, color="red", label = "x")
     # graph.plot(time,acc_y, color="blue", label = "y")
-    graph.plot(time-4,acc_z, color="gray", label = "raw_data")
+    graph.plot(time-4,acc_z, color="gray", label = "raw data")
     graph.plot(time-4,acc_z_LPF, color="black", label = "LPF")
     plt.tick_params(labelbottom=False, bottom=False)
     graph.set_ylabel("acceleration[m/s^2]")
