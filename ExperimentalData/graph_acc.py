@@ -2,6 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import IntEnum, auto
 
+# 日本語フォント設定
+from matplotlib import rcParams
+rcParams["font.family"] = "sans-serif"
+rcParams["font.sans-serif"] = ["Yu Gothic"]
+
 # データの項目
 class item(IntEnum):
     time = 0
@@ -79,7 +84,8 @@ graph.set_ylabel("z [m/s^2]")
 plt.xlim(xmin,xmax)
 plt.ylim(ymin,ymax)
 
-graph.set_xlabel("time [s]")
+graph.set_xlabel("時間 [秒]")
 
 plt.savefig("graph/acc/" + filename + ".png")
-plt.show()
+
+# plt.show()
