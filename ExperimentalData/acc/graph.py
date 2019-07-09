@@ -14,7 +14,7 @@ for i in range(3):
     acc_z_LPF.pop(i-1)
     # acc_z_LPF_deg = list(map(lambda x: x * 180/np.pi, acc_z_LPF))
 
-    fig1 = plt.figure(figsize=(6, 8))
+    fig1 = plt.figure(figsize=(6, 6))
 
     graph = fig1.add_subplot(311)
     # graph.plot(time,acc_x, color="red", label = "x")
@@ -22,7 +22,7 @@ for i in range(3):
     graph.plot(time-4,acc_z, color="gray", label = "raw data")
     graph.plot(time-4,acc_z_LPF, color="black", label = "LPF")
     plt.tick_params(labelbottom=False, bottom=False)
-    graph.set_ylabel("acceleration[m/s^2]")
+    graph.set_ylabel("acceleration [m/s^2]")
     graph.yaxis.set_label_coords(-0.1, 0.5)
     plt.xlim(0,30)
     plt.ylim(-0.15,0.15)
@@ -34,7 +34,7 @@ for i in range(3):
     # graph.plot(time,vel_y, color="blue")
     graph.plot(time-4,vel_z, color="black")
     plt.tick_params(labelbottom=False, bottom=False)
-    graph.set_ylabel("velocity[m/s]")
+    graph.set_ylabel("velocity [m/s]")
     graph.yaxis.set_label_coords(-0.1, 0.5)
     # plt.xlim(4,34)
     plt.xlim(0,30)
@@ -48,10 +48,10 @@ for i in range(3):
     # plt.xlim(4,34)
     plt.xlim(0,30)
     plt.ylim(-0.5,1.5)
-    graph.set_ylabel("position[m]")
+    graph.set_ylabel("position [m]")
     graph.yaxis.set_label_coords(-0.1, 0.5)
     plt.grid()
 
-    graph.set_xlabel("time[s]")
+    graph.set_xlabel("time [s]")
 
     plt.savefig(str(i) + ".png")
