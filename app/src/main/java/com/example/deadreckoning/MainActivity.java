@@ -8,12 +8,16 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager sensorManager;
@@ -47,8 +51,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] acc_world = new float[3];
     float[] speed = new float[3];
     float[] diff = new float[3];
-    float[] oldacc = new float[3];
-    float[] oldspeed = new float[3];
+    float[] oldAcc = new float[3];
+    float[] oldSpeed = new float[3];
 
     // ジャイロセンサー
     float[] angularVelocity = new float[3];
@@ -77,6 +81,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     // ジャイロ・地磁気の値を組み合わせた角度
     float[] rad = new float[3];
 
+    // ファイル出力用配列
+    List<Float> timeList = new ArrayList<>();
+    List<Float> accList_x = new ArrayList<>();
+    List<Float> accList_y = new ArrayList<>();
+    List<Float> accList_z = new ArrayList<>();
+
     // 出力ファイル名
     String fileName = "data.csv";
 
@@ -85,12 +95,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected final static int Y = 1;
     protected final static int Z = 2;
 
+    // アプリ起動時に実行
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // センサーマネージャー起動
         sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+
+        // イベントリスナー登録（センサー有効化）
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+                SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER),
+                SensorManager.SENSOR_DELAY_GAME);
 
         // 画面表示初期化
         time_text = findViewById(R.id.time_val);
@@ -124,96 +157,61 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sampleFileOutput(
                 "time, " +
                 "acc_x, acc_y, acc_z, " +
-                "vel_x, vel_y, vel_z, " +
-                "pos_x, pos_y, pos_z, " +
-                "rad_vel_x, rad_vel_y, rad_vel_z, " +
-                "rad_vel_LPF_x, rad_vel_LPF_y, rad_vel_LPF_z, " +
-                "rad_gyro_x, rad_gyro_y, rad_gyro_z, " +
-                "rad_mag_x, rad_mag_y, rad_mag_z, " +
-                "pos_step_gyro_x, pos_step_gyro_y, " +
-                "pos_step_mag_x, pos_step_mag_y, " +
-                "pos_step_x, pos_step_y" +
+//                "vel_x, vel_y, vel_z, " +
+//                "pos_x, pos_y, pos_z, " +
+//                "rad_vel_x, rad_vel_y, rad_vel_z, " +
+//                "rad_vel_LPF_x, rad_vel_LPF_y, rad_vel_LPF_z, " +
+//                "rad_gyro_x, rad_gyro_y, rad_gyro_z, " +
+//                "rad_mag_x, rad_mag_y, rad_mag_z, " +
+//                "pos_step_gyro_x, pos_step_gyro_y, " +
+//                "pos_step_mag_x, pos_step_mag_y, " +
+//                "pos_step_x, pos_step_y" +
                 "\n",
                 fileName);
-
-        // 周期ハンドラ開始
-        if(isExternalStorageWritable() == true)StartCyclicHandler();
 
         // 実行開始時刻
         start = System.currentTimeMillis()/1000.0;
     }
 
+    // アプリが前面に来たときに実行
     @Override protected void onResume() {
         super.onResume();
 
-        // イベントリスナー登録（センサー有効化）
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-                SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(
-                this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER),
-                SensorManager.SENSOR_DELAY_GAME);
+        // 周期ハンドラ開始
+        if(isExternalStorageWritable() == true)StartCyclicHandler();
     }
 
+    // アプリがバックグラウンドに移行したとき実行
     @Override protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);   // イベントリスナー登録解除
-        StoptCyclicHandler();                     // 周期ハンドラ停止
+
+        // 周期ハンドラ停止
+        StoptCyclicHandler();
+
+        // ファイル書き込み
+        for(int i = 0; i < accList_x.size(); i ++) {
+            String text = new String();
+            text += String.format("%7.4f",timeList.get(i));
+            text += String.format(",%7.4f", accList_x.get(i));
+            text += String.format(",%7.4f", accList_y.get(i));
+            text += String.format(",%7.4f", accList_z.get(i));
+            text += String.format("\n");
+            sampleFileOutput(text, fileName);
+        }
     }
 
-//    // 3*3行列の積 A*B
-//    public float[] multiplyMatrix(float[] A, float[] B) {
-//        float[] answer = new float[9];
-//        for(int i = 0; i < 3; i++) {
-//            for(int j = 0; j < 3; j++) {
-//                for(int k = 0; k < 3; k++) {
-//                    answer[3 * i + j] += A[3 * i + k] * B[3 * k + j];
-//                }
-//            }
-//        }
-//        return answer;
-//    }
-//
-//    public float[] getRotationMatrixByGyro(float[] rad) {
-//        float[] rotationMatrix;
-//        float[] rotationMatrix_x = {
-//                1,                        0,                       0,
-//                0,  (float)Math.cos(rad[X]), (float)Math.sin(rad[X]),
-//                0, -(float)Math.sin(rad[X]), (float)Math.cos(rad[X])};
-//        float[] rotationMatrix_y = {
-//                (float)Math.cos(rad[Y]), 0, -(float)Math.sin(rad[Y]),
-//                                      0, 1,                       0,
-//                (float)Math.sin(rad[Y]), 0,  (float)Math.cos(rad[Y])};
-//        float[] rotationMatrix_z = {
-//                 (float)Math.cos(rad[Z]), (float)Math.sin(rad[Z]), 0,
-//                -(float)Math.sin(rad[Z]), (float)Math.cos(rad[Z]), 0,
-//                                       0,                      0, 1};
-//        rotationMatrix = multiplyMatrix(rotationMatrix_z, rotationMatrix_y);
-//        rotationMatrix = multiplyMatrix(rotationMatrix  , rotationMatrix_x);
-//        return rotationMatrix;
-//    }
+    // アプリ終了時に実行
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        // イベントリスナー登録解除
+        sensorManager.unregisterListener(this);
+    }
 
     // ローパスフィルタ(移動平均)
-    public float LPF(float value, float oldvalue, double Coefficient) {
-        return oldvalue * (float)Coefficient + value * (1 - (float)Coefficient);
+    public float LPF(float value, float oldValue, double Coefficient) {
+        return oldValue * (float)Coefficient + value * (1 - (float)Coefficient);
     }
 
     // センサーの値更新
@@ -225,32 +223,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case Sensor.TYPE_LINEAR_ACCELERATION:
                 acc_device = event.values.clone();
 
+                double accTime = System.currentTimeMillis()/1000.0 - start;
+                timeList.add((float)accTime);
+                accList_x.add(acc_device[X]);
+                accList_y.add(acc_device[Y]);
+                accList_z.add(acc_device[Z]);
+
                 // 時間差計算
                 accNowTime = System.currentTimeMillis()/1000.0;
                 accTimeSpan = accNowTime - accOldTime;
                 accOldTime = accNowTime;
 
-//                // 座標変換
-//                float[] rotationMatrixByGyro = getRotationMatrixByGyro(rad_gyro);
-//                for(int i = 0; i < 3; i++) {
-//                    acc_world[i] = 0;
-//                    for(int j = 0; j < 3; j++) {
-//                        acc_world[i] += rotationMatrixByGyro[j+i*3] * acc_device[j];
-//                    }
-//                }
-
                 if(time < 2) return;
                 for(int i = 0; i < 3; i++) {
                     // ローパスフィルタ
-                    float lowpassValue = LPF(acc_device[i],oldacc[i], 0.9);
+                    float lowPassValue = LPF(acc_device[i],oldAcc[i], 0.9);
 
                     // 台形積分
-                    speed[i] += (oldacc[i] + lowpassValue)/2.0 * accTimeSpan;
-                    diff[i]  += (oldspeed[i] + speed[i])/2.0 * accTimeSpan;
+                    speed[i] += (oldAcc[i] + lowPassValue)/2.0 * accTimeSpan;
+                    diff[i]  += (oldSpeed[i] + speed[i])/2.0 * accTimeSpan;
 
                     // 現在の値保存
-                    oldacc[i]   = lowpassValue;
-                    oldspeed[i] = speed[i];
+                    oldAcc[i]   = lowPassValue;
+                    oldSpeed[i] = speed[i];
                 }
                 break;
 
@@ -265,9 +260,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 if(time < 2) return;
                 for(int i = 0; i < 3; i++) {
-                    // ローパスフィルタ
-//                    float lowPassValue = LPF(angularVelocity[i],oldAngularVelocity[i], 0.9);
-
                     // データ更新
                     for(int j = 0; j < FILTER_DATA_NUM-1; j++) {
                         angularVelocity_old[i][j] = angularVelocity_old[i][j+1];
@@ -300,10 +292,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             case Sensor.TYPE_GRAVITY:
                 gravity = event.values.clone();
                 break;
-
-//            case Sensor.TYPE_ACCELEROMETER:
-//                gravity = event.values.clone();
-//                break;
 
             // 地磁気センサー
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -340,6 +328,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 rad_mag_init[Y] =  rad_mag_tmp[2];
                 rad_mag_init[Z] = -rad_mag_tmp[0];
             }
+
             // ロール・ヨー・ピッチからXYZに変換
             else {
                 rad_mag[X] =  rad_mag_tmp[1] - rad_mag_init[X];
@@ -370,9 +359,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             // 画面出力
             time_text.setText(String.format("%.3f", time));
 
-            acc_x_text.setText(String.format("%.3f", acc_world[X]));
-            acc_y_text.setText(String.format("%.3f", acc_world[Y]));
-            acc_z_text.setText(String.format("%.3f", acc_world[Z]));
+            acc_x_text.setText(String.format("%.3f", acc_device[X]));
+            acc_y_text.setText(String.format("%.3f", acc_device[Y]));
+            acc_z_text.setText(String.format("%.3f", acc_device[Z]));
 
             vel_x_text.setText(String.format("%.3f", speed[X]));
             vel_y_text.setText(String.format("%.3f", speed[Y]));
@@ -395,37 +384,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             pos_step_y_text.setText(String.format("%.3f", pos_step[Y]));
 
             // ファイル出力
-            String text = new String();
-            text += String.format("%7.3f",time);
-            text += String.format(",%7.3f", acc_world[X]);
-            text += String.format(",%7.3f", acc_world[Y]);
-            text += String.format(",%7.3f", acc_world[Z]);
-            text += String.format(",%7.3f", speed[X]);
-            text += String.format(",%7.3f", speed[Y]);
-            text += String.format(",%7.3f", speed[Z]);
-            text += String.format(",%7.3f", diff[X]);
-            text += String.format(",%7.3f", diff[Y]);
-            text += String.format(",%7.3f", diff[Z]);
-            text += String.format(",%7.3f", angularVelocity[X]);
-            text += String.format(",%7.3f", angularVelocity[Y]);
-            text += String.format(",%7.3f", angularVelocity[Z]);
-            text += String.format(",%7.3f", angularVelocity_LPF[X]);
-            text += String.format(",%7.3f", angularVelocity_LPF[Y]);
-            text += String.format(",%7.3f", angularVelocity_LPF[Z]);
-            text += String.format(",%7.3f", rad_gyro[X]);
-            text += String.format(",%7.3f", rad_gyro[Y]);
-            text += String.format(",%7.3f", rad_gyro[Z]);
-            text += String.format(",%7.3f", rad_mag[X]);
-            text += String.format(",%7.3f", rad_mag[Y]);
-            text += String.format(",%7.3f", rad_mag[Z]);
-            text += String.format(",%7.3f", pos_step_gyro[X]);
-            text += String.format(",%7.3f", pos_step_gyro[Y]);
-            text += String.format(",%7.3f", pos_step_mag[X]);
-            text += String.format(",%7.3f", pos_step_mag[Y]);
-            text += String.format(",%7.3f", pos_step[X]);
-            text += String.format(",%7.3f", pos_step[Y]);
-            text += String.format("\n");
-            sampleFileOutput(text, fileName);
+//            String text = new String();
+//            text += String.format("%7.3f",time);
+//            text += String.format(",%7.3f", acc_device[X]);
+//            text += String.format(",%7.3f", acc_device[Y]);
+//            text += String.format(",%7.3f", acc_device[Z]);
+//            text += String.format(",%7.3f", speed[X]);
+//            text += String.format(",%7.3f", speed[Y]);
+//            text += String.format(",%7.3f", speed[Z]);
+//            text += String.format(",%7.3f", diff[X]);
+//            text += String.format(",%7.3f", diff[Y]);
+//            text += String.format(",%7.3f", diff[Z]);
+//            text += String.format(",%7.3f", angularVelocity[X]);
+//            text += String.format(",%7.3f", angularVelocity[Y]);
+//            text += String.format(",%7.3f", angularVelocity[Z]);
+//            text += String.format(",%7.3f", angularVelocity_LPF[X]);
+//            text += String.format(",%7.3f", angularVelocity_LPF[Y]);
+//            text += String.format(",%7.3f", angularVelocity_LPF[Z]);
+//            text += String.format(",%7.3f", rad_gyro[X]);
+//            text += String.format(",%7.3f", rad_gyro[Y]);
+//            text += String.format(",%7.3f", rad_gyro[Z]);
+//            text += String.format(",%7.3f", rad_mag[X]);
+//            text += String.format(",%7.3f", rad_mag[Y]);
+//            text += String.format(",%7.3f", rad_mag[Z]);
+//            text += String.format(",%7.3f", pos_step_gyro[X]);
+//            text += String.format(",%7.3f", pos_step_gyro[Y]);
+//            text += String.format(",%7.3f", pos_step_mag[X]);
+//            text += String.format(",%7.3f", pos_step_mag[Y]);
+//            text += String.format(",%7.3f", pos_step[X]);
+//            text += String.format(",%7.3f", pos_step[Y]);
+//            text += String.format("\n");
+//            sampleFileOutput(text, fileName);
 
             handler.postDelayed(this, 20);    // 20msスリープ
             }
